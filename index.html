@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -163,12 +164,43 @@
             border-left: 3px solid var(--primary);
             border-radius: 0 6px 6px 0;
             font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .reply-content {
+            flex: 1;
         }
 
         .reply-meta {
             font-size: 11px;
             color: var(--text-sub);
             margin-top: 3px;
+        }
+
+        /* 작은 답글 전용 버튼 모음 */
+        .reply-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .btn-reply-small {
+            background: none;
+            border: none;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reply-small:hover {
+            opacity: 1;
+            background: #f1f5f9;
         }
 
         /* PC 기본 답글 레이아웃 */
@@ -306,7 +338,7 @@
                 width: 100%;
             }
             .reply-form button {
-                grid-column: 1 / -1; /* 버튼은 다음 칸 전체 행 차지 */
+                grid-column: 1 / -1;
                 width: 100%;
                 margin-top: 2px;
             }
@@ -631,7 +663,7 @@
         e.target.reset();
     }
 
-    // 답글 추가 (역계단 지원 - 정확한 타임스탬프 저장)
+    // 답글 추가
     async function addReply(contactId) {
         const authorSelect = document.getElementById(`reply-author-${contactId}`);
         const input = document.getElementById(`reply-input-${contactId}`);
@@ -650,7 +682,7 @@
             author: author,
             text: text,
             timestamp: timeStamp,
-            createdAt: now.getTime() // 최신순 정렬용 타임스탬프
+            createdAt: now.getTime()
         };
 
         await updateDoc(doc(window.db, "contacts", String(contactId)), {
@@ -658,6 +690,45 @@
         });
 
         input.value = '';
+    }
+
+    // 답글 수정 기능
+    async function editReply(contactId, replyId) {
+        const contact = state.contacts.find(c => c.id == contactId);
+        if (!contact || !contact.replies) return;
+
+        const targetReply = contact.replies.find(r => r.id == replyId);
+        if (!targetReply) return;
+
+        const newText = prompt('수정할 답글 내용을 입력하세요:', targetReply.text);
+        if (newText === null || newText.trim() === '') return;
+
+        const updatedReplies = contact.replies.map(r => {
+            if (r.id == replyId) {
+                return { ...r, text: newText.trim() };
+            }
+            return r;
+        });
+
+        const { doc, updateDoc } = window.fs;
+        await updateDoc(doc(window.db, "contacts", String(contactId)), {
+            replies: updatedReplies
+        });
+    }
+
+    // 답글 삭제 기능
+    async function deleteReply(contactId, replyId) {
+        if (!confirm('이 답글을 삭제하시겠습니까?')) return;
+
+        const contact = state.contacts.find(c => c.id == contactId);
+        if (!contact || !contact.replies) return;
+
+        const updatedReplies = contact.replies.filter(r => r.id != replyId);
+
+        const { doc, updateDoc } = window.fs;
+        await updateDoc(doc(window.db, "contacts", String(contactId)), {
+            replies: updatedReplies
+        });
     }
 
     function openEditContactModal(id) {
@@ -872,21 +943,27 @@
             `;
         }).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
 
-        // 역계단식(최신 답글 상단) 정렬 적용 영역
         document.getElementById('dash-contact-list').innerHTML = state.contacts.length ? [...state.contacts]
             .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 4).map(c => {
                 
-                // 역계단 정렬: createdAt(생성 시각)을 비교하여 내림차순(최신순) 정렬
+                // 역계단 정렬 (최신순)
                 const sortedReplies = [...(c.replies || [])].sort((r1, r2) => {
                     const time1 = r1.createdAt || r1.id || 0;
                     const time2 = r2.createdAt || r2.id || 0;
                     return time2 - time1;
                 });
                 
+                // 답글 항목 및 소형 수정/삭제 버튼 Rendering
                 const repliesHTML = sortedReplies.map(r => `
                     <div class="reply-item">
-                        <div><b>↳ ${r.text}</b></div>
-                        <div class="reply-meta">👤 ${r.author} • 🕒 ${r.timestamp}</div>
+                        <div class="reply-content">
+                            <div><b>↳ ${r.text}</b></div>
+                            <div class="reply-meta">👤 ${r.author} • 🕒 ${r.timestamp}</div>
+                        </div>
+                        <div class="reply-actions">
+                            <button class="btn-reply-small" onclick="editReply('${c.id}', '${r.id}')" title="답글 수정">✏️</button>
+                            <button class="btn-reply-small" onclick="deleteReply('${c.id}', '${r.id}')" title="답글 삭제">🗑️</button>
+                        </div>
                     </div>
                 `).join('');
 
@@ -901,7 +978,6 @@
                         <button class="btn-icon-edit" onclick="openEditContactModal('${c.id}')">✏️</button>
                     </div>
 
-                    <!-- 답글 영역 및 모바일 분리형 입력폼 -->
                     <div class="reply-section">
                         ${repliesHTML}
                         <div class="reply-form">
