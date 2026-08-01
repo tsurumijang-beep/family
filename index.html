@@ -8,7 +8,7 @@
     <!-- Firebase SDK (v12) Module -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC6c6NajQtT7nesVfB-Nq6WNzp-AbZp6Yw",
@@ -24,7 +24,7 @@
         const db = getFirestore(app);
 
         window.db = db;
-        window.fs = { collection, onSnapshot, doc, setDoc, deleteDoc };
+        window.fs = { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, arrayUnion };
     </script>
 
     <style>
@@ -134,13 +134,70 @@
 
         .family-item-card {
             background: #f1f5f9; padding: 12px 16px; border-radius: 12px;
-            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .family-item-header {
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
         }
 
         .profile-box { display: flex; align-items: center; gap: 12px; }
         .family-info .name { font-weight: bold; font-size: 15px; }
         .family-info .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
         .action-btns { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+
+        /* 답글 (역계단 스타일) 스타일 */
+        .reply-section {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .reply-item {
+            margin-left: 12px;
+            padding: 6px 10px;
+            background: #ffffff;
+            border-left: 3px solid var(--primary);
+            border-radius: 0 6px 6px 0;
+            font-size: 12px;
+        }
+
+        .reply-meta {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        .reply-form {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .reply-form select, .reply-form input {
+            padding: 6px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .reply-form input[type="text"] {
+            flex: 1;
+        }
+
+        .reply-form button {
+            padding: 6px 10px;
+            font-size: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
 
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
         .badge-good { background: #dcfce7; color: #15803d; }
@@ -216,7 +273,6 @@
             .stat-card .value { font-size: 20px; }
             .dashboard-grid { grid-template-columns: 1fr; }
             .widget-card { padding: 16px; }
-            .family-item-card { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
             .action-btns { justify-content: flex-end; }
             form { grid-template-columns: 1fr !important; padding: 16px; }
             input, select, textarea, button { width: 100%; }
@@ -261,7 +317,7 @@
                 <div class="dashboard-grid">
                     <div class="widget-card"><h3>📍 가족 현황 및 빠른 연락</h3><div class="widget-list" id="dash-family-list"></div></div>
                     <div class="widget-card"><h3>💌 가족 실시간 컨디션</h3><div class="widget-list" id="dash-condition-list"></div></div>
-                    <div class="widget-card"><h3>📞 최근 연락</h3><div class="widget-list" id="dash-contact-list"></div></div>
+                    <div class="widget-card"><h3>📞 최근 연락 & 실시간 답글</h3><div class="widget-list" id="dash-contact-list"></div></div>
                     <div class="widget-card"><h3>🎉 다가오는 주요 일정</h3><div class="widget-list" id="dash-schedule-list"></div></div>
                 </div>
             </div>
@@ -535,9 +591,39 @@
             name: document.getElementById('contact-name').value,
             date: document.getElementById('contact-date').value,
             title: document.getElementById('contact-title').value,
-            detail: document.getElementById('contact-detail').value
+            detail: document.getElementById('contact-detail').value,
+            replies: []
         });
         e.target.reset();
+    }
+
+    // 답글 추가 함수 (역계단 지원)
+    async function addReply(contactId) {
+        const authorSelect = document.getElementById(`reply-author-${contactId}`);
+        const input = document.getElementById(`reply-input-${contactId}`);
+        const text = input ? input.value.trim() : '';
+        const author = authorSelect ? authorSelect.value : '';
+
+        if (!text) return alert('답글 내용을 입력해주세요.');
+        if (!author) return alert('작성자를 선택해주세요.');
+
+        const now = new Date();
+        const timeStamp = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        const { doc, updateDoc, arrayUnion } = window.fs;
+        const replyData = {
+            id: Date.now(),
+            author: author,
+            text: text,
+            timestamp: timeStamp,
+            createdAt: now.getTime()
+        };
+
+        await updateDoc(doc(window.db, "contacts", String(contactId)), {
+            replies: arrayUnion(replyData)
+        });
+
+        input.value = '';
     }
 
     function openEditContactModal(id) {
@@ -630,6 +716,10 @@
         famTable.innerHTML = '';
         contactSelect.innerHTML = '';
 
+        const authorOptionsHTML = state.families.length 
+            ? state.families.map(f => `<option value="${f.name}">${f.name}</option>`).join('')
+            : `<option value="익명">익명</option>`;
+
         state.families.forEach(f => {
             const qrBtn = f.qr ? `<a href="${f.qr}" target="_blank" class="btn-link btn-kakao">카톡</a>` : '-';
             const phoneBtn = f.phone ? `<a href="tel:${f.phone}" class="btn-link btn-tel">${f.phone}</a>` : '-';
@@ -714,16 +804,18 @@
 
         document.getElementById('dash-family-list').innerHTML = state.families.length ? state.families.map(f => `
             <div class="family-item-card">
-                <div class="profile-box">
-                    <div class="family-info">
-                        <div class="name">${f.name}</div>
-                        <div class="sub">📍 ${f.country} (${f.location}) ${f.memo ? '• ' + f.memo : ''}</div>
+                <div class="family-item-header">
+                    <div class="profile-box">
+                        <div class="family-info">
+                            <div class="name">${f.name}</div>
+                            <div class="sub">📍 ${f.country} (${f.location}) ${f.memo ? '• ' + f.memo : ''}</div>
+                        </div>
                     </div>
-                </div>
-                <div class="action-btns">
-                    ${f.phone ? `<a href="tel:${f.phone}" class="btn-link btn-tel">📞</a>` : ''}
-                    ${f.qr ? `<a href="${f.qr}" target="_blank" class="btn-link btn-kakao">💬</a>` : ''}
-                    <button class="btn-icon-edit" onclick="openEditFamilyModal('${f.id}')">✏️</button>
+                    <div class="action-btns">
+                        ${f.phone ? `<a href="tel:${f.phone}" class="btn-link btn-tel">📞</a>` : ''}
+                        ${f.qr ? `<a href="${f.qr}" target="_blank" class="btn-link btn-kakao">💬</a>` : ''}
+                        <button class="btn-icon-edit" onclick="openEditFamilyModal('${f.id}')">✏️</button>
+                    </div>
                 </div>
             </div>
         `).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
@@ -732,41 +824,70 @@
             const cond = state.conditionsMap[f.name] || { status: '양호', memo: '', date: '-' };
             return `
             <div class="family-item-card">
-                <div>
-                    <b>${f.name}</b> <small style="color:#64748b">(${cond.date})</small>
-                    <div style="font-size:12px; color:#475569; margin-top:2px;">${cond.memo || '메모 없음'}</div>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    ${getStatusBadge(cond.status)}
-                    <button class="btn-icon-edit" onclick="switchPage('page-condition', null)">✏️</button>
+                <div class="family-item-header">
+                    <div>
+                        <b>${f.name}</b> <small style="color:#64748b">(${cond.date})</small>
+                        <div style="font-size:12px; color:#475569; margin-top:2px;">${cond.memo || '메모 없음'}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        ${getStatusBadge(cond.status)}
+                        <button class="btn-icon-edit" onclick="switchPage('page-condition', null)">✏️</button>
+                    </div>
                 </div>
             </div>
             `;
         }).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
 
+        // 최근 연락 & 역계단 답글 렌더링 부분
         document.getElementById('dash-contact-list').innerHTML = state.contacts.length ? [...state.contacts]
-            .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 4).map(c => `
-            <div class="family-item-card">
-                <div>
-                    <b>${c.name}</b> <small style="color:#64748b">(${c.date})</small>
-                    <div style="font-size:13px; font-weight:bold; color:#334155; margin-top:2px;">${c.title}</div>
-                    ${c.detail ? `<div style="font-size:12px; color:#64748b; margin-top:2px;">${c.detail}</div>` : ''}
+            .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 4).map(c => {
+                // 답글 역계단 정렬 (최신 답글이 상단)
+                const sortedReplies = (c.replies || []).sort((r1, r2) => (r2.createdAt || 0) - (r1.createdAt || 0));
+                
+                const repliesHTML = sortedReplies.map(r => `
+                    <div class="reply-item">
+                        <div><b>↳ ${r.text}</b></div>
+                        <div class="reply-meta">👤 ${r.author} • 🕒 ${r.timestamp}</div>
+                    </div>
+                `).join('');
+
+                return `
+                <div class="family-item-card">
+                    <div class="family-item-header">
+                        <div>
+                            <b>${c.name}</b> <small style="color:#64748b">(${c.date})</small>
+                            <div style="font-size:13px; font-weight:bold; color:#334155; margin-top:2px;">${c.title}</div>
+                            ${c.detail ? `<div style="font-size:12px; color:#64748b; margin-top:2px;">${c.detail}</div>` : ''}
+                        </div>
+                        <button class="btn-icon-edit" onclick="openEditContactModal('${c.id}')">✏️</button>
+                    </div>
+
+                    <!-- 역계단 답글 영역 -->
+                    <div class="reply-section">
+                        ${repliesHTML}
+                        <div class="reply-form">
+                            <select id="reply-author-${c.id}">${authorOptionsHTML}</select>
+                            <input type="text" id="reply-input-${c.id}" placeholder="답글 작성...">
+                            <button onclick="addReply('${c.id}')">등록</button>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn-icon-edit" onclick="openEditContactModal('${c.id}')">✏️</button>
-            </div>
-        `).join('') : '<div style="color:#94a3b8">연락 기록이 없습니다.</div>';
+                `;
+            }).join('') : '<div style="color:#94a3b8">연락 기록이 없습니다.</div>';
 
         document.getElementById('dash-schedule-list').innerHTML = state.schedules.length ? [...state.schedules]
             .sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 4).map(s => `
             <div class="family-item-card">
-                <div>
-                    <b>${s.title}</b>
-                    <div style="font-size:12px; color:#64748b; margin-top:2px;">📅 ${s.date}</div>
-                    ${s.detail ? `<div style="font-size:12px; color:#475569; margin-top:2px;">${s.detail}</div>` : ''}
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span class="badge badge-warn">${s.type}</span>
-                    <button class="btn-icon-edit" onclick="openEditScheduleModal('${s.id}')">✏️</button>
+                <div class="family-item-header">
+                    <div>
+                        <b>${s.title}</b>
+                        <div style="font-size:12px; color:#64748b; margin-top:2px;">📅 ${s.date}</div>
+                        ${s.detail ? `<div style="font-size:12px; color:#475569; margin-top:2px;">${s.detail}</div>` : ''}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="badge badge-warn">${s.type}</span>
+                        <button class="btn-icon-edit" onclick="openEditScheduleModal('${s.id}')">✏️</button>
+                    </div>
                 </div>
             </div>
         `).join('') : '<div style="color:#94a3b8">등록된 일정이 없습니다.</div>';
