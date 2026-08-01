@@ -146,7 +146,7 @@
         .family-info .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
         .action-btns { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 
-        /* 답글 (역계단) 디자인 */
+        /* 답글 영역 */
         .reply-section {
             margin-top: 8px;
             padding-top: 8px;
@@ -171,13 +171,12 @@
             margin-top: 3px;
         }
 
-        /* 답글 입력창 영역 디자인 */
+        /* PC 기본 답글 레이아웃 */
         .reply-form {
             display: flex;
             gap: 6px;
-            margin-top: 4px;
+            margin-top: 6px;
             width: 100%;
-            flex-wrap: wrap; /* 스마트폰 등 좁은 화면 대응 */
         }
 
         .reply-form select {
@@ -187,12 +186,11 @@
             border: 1px solid var(--border);
             background-color: #ffffff;
             min-height: 38px;
-            flex-shrink: 0;
+            width: 100px;
         }
 
         .reply-form input[type="text"] {
             flex: 1;
-            min-width: 120px;
             padding: 8px 10px;
             font-size: 13px;
             border-radius: 6px;
@@ -211,7 +209,7 @@
             cursor: pointer;
             font-weight: bold;
             min-height: 38px;
-            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
@@ -293,11 +291,11 @@
             form { grid-template-columns: 1fr !important; padding: 16px; }
             input, select, textarea, button { width: 100%; }
             
-            /* 스마트폰에서 답글 작성 영역 모바일 최적화 */
+            /* 모바일 전용 답글 입력란 : 다음 칸(줄바꿈)으로 독립 배치 */
             .reply-form {
                 display: grid;
-                grid-template-columns: 100px 1fr;
-                gap: 6px;
+                grid-template-columns: 90px 1fr;
+                gap: 8px;
             }
             .reply-form select {
                 grid-column: 1 / 2;
@@ -308,8 +306,9 @@
                 width: 100%;
             }
             .reply-form button {
-                grid-column: 1 / -1;
+                grid-column: 1 / -1; /* 버튼은 다음 칸 전체 행 차지 */
                 width: 100%;
+                margin-top: 2px;
             }
 
             table, thead, tbody, th, td, tr { display: block; }
@@ -632,7 +631,7 @@
         e.target.reset();
     }
 
-    // 답글 추가 함수 (역계단 지원)
+    // 답글 추가 (역계단 지원 - 정확한 타임스탬프 저장)
     async function addReply(contactId) {
         const authorSelect = document.getElementById(`reply-author-${contactId}`);
         const input = document.getElementById(`reply-input-${contactId}`);
@@ -651,7 +650,7 @@
             author: author,
             text: text,
             timestamp: timeStamp,
-            createdAt: now.getTime()
+            createdAt: now.getTime() // 최신순 정렬용 타임스탬프
         };
 
         await updateDoc(doc(window.db, "contacts", String(contactId)), {
@@ -873,10 +872,16 @@
             `;
         }).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
 
-        // 최근 연락 & 모바일 입력창 지원 역계단 답글 렌더링
+        // 역계단식(최신 답글 상단) 정렬 적용 영역
         document.getElementById('dash-contact-list').innerHTML = state.contacts.length ? [...state.contacts]
             .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 4).map(c => {
-                const sortedReplies = (c.replies || []).sort((r1, r2) => (r2.createdAt || 0) - (r1.createdAt || 0));
+                
+                // 역계단 정렬: createdAt(생성 시각)을 비교하여 내림차순(최신순) 정렬
+                const sortedReplies = [...(c.replies || [])].sort((r1, r2) => {
+                    const time1 = r1.createdAt || r1.id || 0;
+                    const time2 = r2.createdAt || r2.id || 0;
+                    return time2 - time1;
+                });
                 
                 const repliesHTML = sortedReplies.map(r => `
                     <div class="reply-item">
@@ -896,13 +901,13 @@
                         <button class="btn-icon-edit" onclick="openEditContactModal('${c.id}')">✏️</button>
                     </div>
 
-                    <!-- 답글 및 입력 영역 -->
+                    <!-- 답글 영역 및 모바일 분리형 입력폼 -->
                     <div class="reply-section">
                         ${repliesHTML}
                         <div class="reply-form">
                             <select id="reply-author-${c.id}">${authorOptionsHTML}</select>
                             <input type="text" id="reply-input-${c.id}" placeholder="답글 작성...">
-                            <button onclick="addReply('${c.id}')">등록</button>
+                            <button onclick="addReply('${c.id}')">답글 등록</button>
                         </div>
                     </div>
                 </div>
