@@ -3,7 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>가족안부현황 - Firebase 실시간 연동</title>
+    <title>가족안부현황</title>
+
+    <!-- Firebase SDK (v12) Module -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6c6NajQtT7nesVfB-Nq6WNzp-AbZp6Yw",
+            authDomain: "cloud-firestore-f78dc.firebaseapp.com",
+            projectId: "cloud-firestore-f78dc",
+            storageBucket: "cloud-firestore-f78dc.firebasestorage.app",
+            messagingSenderId: "29122903016",
+            appId: "1:29122903016:web:ec187a1cf46e97e5d2025d",
+            measurementId: "G-BVE25FB990"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { collection, onSnapshot, doc, setDoc, deleteDoc };
+    </script>
+
     <style>
         :root {
             --primary: #4f46e5;
@@ -38,8 +61,13 @@
             top: 0;
             z-index: 900;
         }
+
         .mobile-header h2 { font-size: 16px; color: #38bdf8; margin: 0; }
-        .hamburger-btn { background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; padding: 4px; }
+
+        .hamburger-btn {
+            background: none; border: none; color: #ffffff;
+            font-size: 22px; cursor: pointer; padding: 4px;
+        }
 
         .sidebar {
             width: var(--sidebar-width);
@@ -51,13 +79,21 @@
             flex-shrink: 0;
             transition: all 0.3s ease;
         }
-        .sidebar h2 { font-size: 18px; margin-bottom: 24px; padding-left: 12px; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
-        .nav-menu { display: flex; flex-direction: column; gap: 8px; }
-        .nav-btn {
-            background: transparent; border: none; color: #94a3b8; padding: 12px 16px; border-radius: 8px;
-            cursor: pointer; text-align: left; font-size: 15px; font-weight: 600; transition: all 0.2s;
-            display: flex; align-items: center; gap: 10px;
+
+        .sidebar h2 {
+            font-size: 18px; margin-bottom: 24px; padding-left: 12px;
+            color: #38bdf8; display: flex; align-items: center; gap: 8px;
         }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; }
+
+        .nav-btn {
+            background: transparent; border: none; color: #94a3b8;
+            padding: 12px 16px; border-radius: 8px; cursor: pointer;
+            text-align: left; font-size: 15px; font-weight: 600;
+            transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+        }
+
         .nav-btn:hover { background: #334155; color: #ffffff; }
         .nav-btn.active { background: var(--primary); color: #ffffff; }
 
@@ -66,28 +102,41 @@
         .header h1 { font-size: 24px; color: var(--text-main); }
 
         .dashboard-container { display: flex; flex-direction: column; gap: 24px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+        }
+
         .stat-card {
             background: var(--card-bg); padding: 20px; border-radius: 12px;
             border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
+
         .stat-card .label { font-size: 13px; color: var(--text-sub); font-weight: 600; margin-bottom: 6px; }
         .stat-card .value { font-size: 24px; font-weight: 800; color: var(--primary); }
 
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .dashboard-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;
+        }
+
         .widget-card {
-            background: var(--card-bg); border-radius: 16px; padding: 24px; border: 1px solid var(--border);
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+            background: var(--card-bg); border-radius: 16px; padding: 24px;
+            border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column;
         }
+
         .widget-card h3 {
-            font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px;
-            border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;
+            font-size: 16px; font-weight: 700; margin-bottom: 16px;
+            padding-bottom: 12px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
         }
+
         .widget-list { display: flex; flex-direction: column; gap: 12px; }
+
         .family-item-card {
             background: #f1f5f9; padding: 12px 16px; border-radius: 12px;
             display: flex; justify-content: space-between; align-items: center; gap: 8px;
         }
+
         .profile-box { display: flex; align-items: center; gap: 12px; }
         .family-info .name { font-weight: bold; font-size: 15px; }
         .family-info .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
@@ -107,13 +156,16 @@
 
         form {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
-            background: var(--card-bg); padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border);
+            background: var(--card-bg); padding: 24px; border-radius: 12px;
+            margin-bottom: 24px; border: 1px solid var(--border);
         }
+
         input, select, textarea, button {
-            padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
-            font-size: 14px; font-family: inherit;
+            padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit;
         }
+
         textarea { resize: vertical; min-height: 50px; }
+
         button.btn-submit {
             background: var(--primary); color: white; border: none; cursor: pointer;
             font-weight: bold; transition: background 0.2s; min-height: 44px;
@@ -126,8 +178,10 @@
             width: 100%; border-collapse: collapse; background: var(--card-bg);
             border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
         }
+
         th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
         th { background: #f8fafc; color: var(--text-sub); font-weight: 600; }
+
         .btn-edit { background: #0284c7; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 4px; }
         .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
         .detail-text { font-size: 12px; color: var(--text-sub); margin-top: 4px; white-space: pre-wrap; }
@@ -139,28 +193,18 @@
         }
         .modal-overlay.active { display: flex; }
         .modal-content {
-            background: white; padding: 24px; border-radius: 16px; width: 100%;
-            max-width: 500px; max-height: 90vh; overflow-y: auto;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            background: white; padding: 24px; border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
         .modal-content h2 { font-size: 18px; margin-bottom: 20px; color: var(--text-main); }
         .modal-form { display: flex; flex-direction: column; gap: 12px; padding: 0; border: none; background: transparent; margin-bottom: 0; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
         .btn-cancel { background: #e2e8f0; color: #475569; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        .sync-status {
-            position: fixed; bottom: 16px; right: 16px; padding: 8px 14px; border-radius: 20px;
-            font-size: 12px; font-weight: 600; z-index: 100; transition: all 0.3s;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .sync-online { background: #dcfce7; color: #15803d; }
-        .sync-offline { background: #fee2e2; color: #b91c1c; }
-        .sync-syncing { background: #fef9c3; color: #a16207; }
-
+        /* 모바일 대응 레이아웃 */
         @media (max-width: 768px) {
             body { flex-direction: column; height: 100vh; }
             .mobile-header { display: flex; }
-            .sidebar { position: fixed; top: 52px; left: -100%; width: 100%; height: calc(100vh - 52px); z-index: 800; padding: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+            .sidebar { position: fixed; top: 52px; left: -100%; width: 100%; height: calc(100vh - 52px); z-index: 800; padding: 16px; }
             .sidebar.active { left: 0; }
             .sidebar h2 { display: none; }
             .main-content { padding: 16px; }
@@ -174,12 +218,16 @@
             .action-btns { width: 100%; justify-content: flex-end; }
             form { grid-template-columns: 1fr !important; padding: 16px; }
             input, select, textarea, button { width: 100%; }
+            
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
-            tr { background: #ffffff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; padding: 12px; }
+            tr { background: #ffffff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
             td { border: none; border-bottom: 1px solid #f1f5f9; position: relative; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
-            td:last-child { border-bottom: none; justify-content: flex-end; padding-top: 12px; }
+            td:last-child { border-bottom: none; justify-content: flex-end; padding-top: 12px; margin-top: 4px; }
             td::before { content: attr(data-label); font-weight: bold; color: var(--text-sub); font-size: 13px; text-align: left; padding-right: 10px; }
+            
+            /* 모바일 버튼 스타일 강화 */
+            .btn-edit, .btn-delete { padding: 8px 14px; font-size: 13px; border-radius: 6px; }
         }
     </style>
 </head>
@@ -212,22 +260,10 @@
                     <div class="stat-card"><div class="label">다가오는 일정</div><div class="value" id="stat-schedule-count">0건</div></div>
                 </div>
                 <div class="dashboard-grid">
-                    <div class="widget-card">
-                        <h3>📍 가족 현황 및 빠른 연락</h3>
-                        <div class="widget-list" id="dash-family-list"></div>
-                    </div>
-                    <div class="widget-card">
-                        <h3>💌 가족 실시간 컨디션</h3>
-                        <div class="widget-list" id="dash-condition-list"></div>
-                    </div>
-                    <div class="widget-card">
-                        <h3>📞 최근 연락</h3>
-                        <div class="widget-list" id="dash-contact-list"></div>
-                    </div>
-                    <div class="widget-card">
-                        <h3>🎉 다가오는 주요 일정</h3>
-                        <div class="widget-list" id="dash-schedule-list"></div>
-                    </div>
+                    <div class="widget-card"><h3>📍 가족 현황 및 빠른 연락</h3><div class="widget-list" id="dash-family-list"></div></div>
+                    <div class="widget-card"><h3>💌 가족 실시간 컨디션</h3><div class="widget-list" id="dash-condition-list"></div></div>
+                    <div class="widget-card"><h3>📞 최근 연락</h3><div class="widget-list" id="dash-contact-list"></div></div>
+                    <div class="widget-card"><h3>🎉 다가오는 주요 일정</h3><div class="widget-list" id="dash-schedule-list"></div></div>
                 </div>
             </div>
         </div>
@@ -235,11 +271,17 @@
         <div id="page-condition" class="page-content">
             <div class="header">
                 <h1>가족 실시간 컨디션 체크</h1>
-                <p style="color: var(--text-sub); font-size: 14px; margin-top: 4px;">상태를 변경하면 모든 연결된 기기에 실시간으로 반영됩니다.</p>
+                <p style="color: var(--text-sub); font-size: 14px; margin-top: 4px;">상태를 변경하면 모든 가족 화면에 실시간 변경됩니다.</p>
             </div>
             <table>
                 <thead>
-                    <tr><th style="width: 150px;">이름</th><th style="width: 180px;">실시간 컨디션 변경</th><th>상세 메모</th><th style="width: 150px;">최근 업데이트</th><th style="width: 80px;">저장</th></tr>
+                    <tr>
+                        <th style="width: 150px;">이름</th>
+                        <th style="width: 180px;">실시간 컨디션 변경</th>
+                        <th>상세 메모</th>
+                        <th style="width: 150px;">최근 업데이트</th>
+                        <th style="width: 80px;">상태</th>
+                    </tr>
                 </thead>
                 <tbody id="table-condition"></tbody>
             </table>
@@ -249,16 +291,18 @@
             <div class="header"><h1>가족 등록 및 관리</h1></div>
             <form id="form-family" onsubmit="addFamily(event)">
                 <input type="text" id="fam-name" placeholder="이름 (예: 홍길동)" required>
-                <input type="tel" id="fam-phone" placeholder="전화번호 (예: 010-1234-5678)" required>
+                <input type="tel" id="fam-phone" placeholder="전화번호" required>
                 <input type="text" id="fam-qr" placeholder="카톡 오픈채팅 / QR 링크">
                 <input type="text" id="fam-country" placeholder="국가 (예: 한국)" required>
                 <input type="text" id="fam-location" placeholder="현재 위치 (예: 서울)" required>
-                <input type="text" id="fam-memo" placeholder="메모 (예: 시차 2시간)">
+                <input type="text" id="fam-memo" placeholder="메모">
                 <button type="submit" class="btn-submit" style="grid-column: 1 / -1;">가족 추가</button>
             </form>
             <table>
                 <thead>
-                    <tr><th>이름</th><th>전화번호</th><th>카톡</th><th>국가/위치</th><th>메모</th><th style="width: 120px;">관리</th></tr>
+                    <tr>
+                        <th>이름</th><th>전화번호</th><th>카톡</th><th>국가/위치</th><th>메모</th><th style="width: 120px;">관리</th>
+                    </tr>
                 </thead>
                 <tbody id="table-family"></tbody>
             </table>
@@ -269,22 +313,22 @@
             <form id="form-contact" onsubmit="addContact(event)">
                 <select id="contact-name" required></select>
                 <input type="date" id="contact-date" required>
-                <input type="text" id="contact-title" placeholder="연락 요약 (예: 주말 안부 전화)" style="grid-column: 1 / -1;" required>
+                <input type="text" id="contact-title" placeholder="연락 요약" style="grid-column: 1 / -1;" required>
                 <textarea id="contact-detail" placeholder="상세 대화 내용" style="grid-column: 1 / -1; min-height: 60px;"></textarea>
                 <button type="submit" class="btn-submit" style="grid-column: 1 / -1;">연락 기록 저장</button>
             </form>
             <table>
                 <thead>
-                    <tr><th style="width: 120px;">날짜</th><th style="width: 100px;">이름</th><th>연락 요약 및 상세 내용</th><th style="width: 120px;">관리</th></tr>
+                    <tr><th style="width: 120px;">날짜</th><th style="width: 100px;">이름</th><th>내용</th><th style="width: 120px;">관리</th></tr>
                 </thead>
                 <tbody id="table-contact"></tbody>
             </table>
         </div>
 
         <div id="page-schedule" class="page-content">
-            <div class="header"><h1>일정 등록 (대소사, 여행)</h1></div>
+            <div class="header"><h1>일정 등록</h1></div>
             <form id="form-schedule" onsubmit="addSchedule(event)">
-                <input type="text" id="sched-title" placeholder="일정 이름 (예: 생신, 해외여행)" required>
+                <input type="text" id="sched-title" placeholder="일정 이름" required>
                 <input type="date" id="sched-date" required>
                 <select id="sched-type" style="grid-column: 1 / -1;">
                     <option value="대소사">대소사</option>
@@ -296,13 +340,14 @@
             </form>
             <table>
                 <thead>
-                    <tr><th style="width: 120px;">날짜</th><th style="width: 90px;">구분</th><th>일정 이름 및 상세 내용</th><th style="width: 120px;">관리</th></tr>
+                    <tr><th style="width: 120px;">날짜</th><th style="width: 90px;">구분</th><th>일정</th><th style="width: 120px;">관리</th></tr>
                 </thead>
                 <tbody id="table-schedule"></tbody>
             </table>
         </div>
     </div>
 
+    <!-- 모달 창들 -->
     <div id="edit-modal-family" class="modal-overlay">
         <div class="modal-content">
             <h2>✏️ 가족 정보 수정</h2>
@@ -310,13 +355,13 @@
                 <input type="hidden" id="edit-fam-id">
                 <input type="text" id="edit-fam-name" placeholder="이름" required>
                 <input type="tel" id="edit-fam-phone" placeholder="전화번호" required>
-                <input type="text" id="edit-fam-qr" placeholder="카톡 오픈채팅 / QR 링크">
+                <input type="text" id="edit-fam-qr" placeholder="카톡 링크">
                 <input type="text" id="edit-fam-country" placeholder="국가" required>
-                <input type="text" id="edit-fam-location" placeholder="현재 위치" required>
+                <input type="text" id="edit-fam-location" placeholder="위치" required>
                 <input type="text" id="edit-fam-memo" placeholder="메모">
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeModal('edit-modal-family')">취소</button>
-                    <button type="submit" class="btn-submit">저장하기</button>
+                    <button type="submit" class="btn-submit">저장</button>
                 </div>
             </form>
         </div>
@@ -329,11 +374,11 @@
                 <input type="hidden" id="edit-contact-id">
                 <select id="edit-contact-name" required></select>
                 <input type="date" id="edit-contact-date" required>
-                <input type="text" id="edit-contact-title" placeholder="연락 요약" required>
-                <textarea id="edit-contact-detail" placeholder="상세 대화 내용" style="min-height: 80px;"></textarea>
+                <input type="text" id="edit-contact-title" placeholder="요약" required>
+                <textarea id="edit-contact-detail" placeholder="상세 내용" style="min-height: 80px;"></textarea>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeModal('edit-modal-contact')">취소</button>
-                    <button type="submit" class="btn-submit">저장하기</button>
+                    <button type="submit" class="btn-submit">저장</button>
                 </div>
             </form>
         </div>
@@ -351,280 +396,54 @@
                     <option value="여행">여행</option>
                     <option value="기타">기타</option>
                 </select>
-                <textarea id="edit-sched-detail" placeholder="일정 상세 내용" style="min-height: 80px;"></textarea>
+                <textarea id="edit-sched-detail" placeholder="상세 내용" style="min-height: 80px;"></textarea>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeModal('edit-modal-schedule')">취소</button>
-                    <button type="submit" class="btn-submit">저장하기</button>
+                    <button type="submit" class="btn-submit">저장</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="sync-badge" class="sync-status sync-syncing">⏳ 동기화 중...</div>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
 <script>
-    // ═══════════════════════════════════════════════════════════════
-    // 1. Firebase 설정 (사용자 제공값)
-    // ═══════════════════════════════════════════════════════════════
-    const firebaseConfig = {
-        apiKey: "AIzaSyC6c6NajQtT7nesVfB-Nq6WNzp-AbZp6Yw",
-        authDomain: "cloud-firestore-f78dc.firebaseapp.com",
-        projectId: "cloud-firestore-f78dc",
-        storageBucket: "cloud-firestore-f78dc.firebasestorage.app",
-        messagingSenderId: "29122903016",
-        appId: "1:29122903016:web:ec187a1cf46e97e5d2025d",
-        measurementId: "G-BVE25FB990"
-    };
+    let state = { families: [], conditionsMap: {}, contacts: [], schedules: [] };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    // 오프라인 지원 활성화
-    db.enablePersistence({ synchronizeTabs: true })
-        .catch(err => {
-            if (err.code === 'failed-precondition') {
-                console.warn('오프라인 지원: 여러 탭이 열려 있어 활성화되지 않았습니다.');
-            } else if (err.code === 'unimplemented') {
-                console.warn('오프라인 지원: 브라우저가 지원하지 않습니다.');
+    window.addEventListener('DOMContentLoaded', () => {
+        const checkFirebase = setInterval(() => {
+            if (window.db && window.fs) {
+                clearInterval(checkFirebase);
+                initFirebaseRealtime();
             }
+        }, 100);
+    });
+
+    function initFirebaseRealtime() {
+        const { collection, onSnapshot } = window.fs;
+
+        onSnapshot(collection(window.db, "families"), (snapshot) => {
+            state.families = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            render();
         });
 
-    // ═══════════════════════════════════════════════════════════════
-    // 2. 상태 관리
-    // ═══════════════════════════════════════════════════════════════
-    let state = {
-        families: [],
-        conditionsMap: {},
-        contacts: [],
-        schedules: []
-    };
-
-    function setSyncStatus(status) {
-        const badge = document.getElementById('sync-badge');
-        if (status === 'online') {
-            badge.className = 'sync-status sync-online';
-            badge.innerText = '✅ 실시간 연결 중';
-        } else if (status === 'offline') {
-            badge.className = 'sync-status sync-offline';
-            badge.innerText = '⚠️ 오프라인 (로컬 저장 중)';
-        } else {
-            badge.className = 'sync-status sync-syncing';
-            badge.innerText = '⏳ 동기화 중...';
-        }
-    }
-
-    window.addEventListener('online', () => setSyncStatus('online'));
-    window.addEventListener('offline', () => setSyncStatus('offline'));
-    if (navigator.onLine) setSyncStatus('online');
-    else setSyncStatus('offline');
-
-    // ═══════════════════════════════════════════════════════════════
-    // 3. Firestore 실시간 리스너
-    // ═══════════════════════════════════════════════════════════════
-    function initRealtimeListeners() {
-        db.collection('families').orderBy('name').onSnapshot(snapshot => {
-            state.families = [];
-            snapshot.forEach(doc => {
-                state.families.push({ id: doc.id, ...doc.data() });
-            });
-            render();
-        }, err => console.error('families listener error:', err));
-
-        db.collection('conditions').onSnapshot(snapshot => {
+        onSnapshot(collection(window.db, "conditions"), (snapshot) => {
             state.conditionsMap = {};
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                state.conditionsMap[data.name] = { status: data.status, memo: data.memo, date: data.date };
+            snapshot.docs.forEach(doc => {
+                state.conditionsMap[doc.id] = doc.data();
             });
             render();
-        }, err => console.error('conditions listener error:', err));
+        });
 
-        db.collection('contacts').orderBy('date', 'desc').onSnapshot(snapshot => {
-            state.contacts = [];
-            snapshot.forEach(doc => {
-                state.contacts.push({ id: doc.id, ...doc.data() });
-            });
+        onSnapshot(collection(window.db, "contacts"), (snapshot) => {
+            state.contacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             render();
-        }, err => console.error('contacts listener error:', err));
+        });
 
-        db.collection('schedules').orderBy('date').onSnapshot(snapshot => {
-            state.schedules = [];
-            snapshot.forEach(doc => {
-                state.schedules.push({ id: doc.id, ...doc.data() });
-            });
+        onSnapshot(collection(window.db, "schedules"), (snapshot) => {
+            state.schedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             render();
-        }, err => console.error('schedules listener error:', err));
+        });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // 4. CRUD 함수
-    // ═══════════════════════════════════════════════════════════════
-    async function addFamily(e) {
-        e.preventDefault();
-        const name = document.getElementById('fam-name').value;
-        const newFamily = {
-            name: name,
-            phone: document.getElementById('fam-phone').value,
-            qr: document.getElementById('fam-qr').value || '',
-            country: document.getElementById('fam-country').value,
-            location: document.getElementById('fam-location').value,
-            memo: document.getElementById('fam-memo').value || '',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        try {
-            await db.collection('families').add(newFamily);
-            const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            await db.collection('conditions').doc(name).set({
-                name: name, status: '양호', memo: '', date: now,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            e.target.reset();
-        } catch (err) { alert('가족 추가 실패: ' + err.message); }
-    }
-
-    async function saveEditFamily(e) {
-        e.preventDefault();
-        const id = document.getElementById('edit-fam-id').value;
-        const newName = document.getElementById('edit-fam-name').value;
-        try {
-            const docRef = db.collection('families').doc(id);
-            const docSnap = await docRef.get();
-            const oldData = docSnap.data();
-            const oldName = oldData.name;
-            if (oldName !== newName) {
-                const condRef = db.collection('conditions').doc(oldName);
-                const condSnap = await condRef.get();
-                if (condSnap.exists) {
-                    await db.collection('conditions').doc(newName).set({ ...condSnap.data(), name: newName });
-                    await condRef.delete();
-                }
-            }
-            await docRef.update({
-                name: newName, phone: document.getElementById('edit-fam-phone').value,
-                qr: document.getElementById('edit-fam-qr').value || '',
-                country: document.getElementById('edit-fam-country').value,
-                location: document.getElementById('edit-fam-location').value,
-                memo: document.getElementById('edit-fam-memo').value || ''
-            });
-            closeModal('edit-modal-family');
-        } catch (err) { alert('수정 실패: ' + err.message); }
-    }
-
-    async function deleteFamily(id) {
-        if (!confirm('정말 삭제하시겠습니까? 관련 컨디션 데이터도 함께 삭제됩니다.')) return;
-        try {
-            const doc = await db.collection('families').doc(id).get();
-            const name = doc.data().name;
-            await db.collection('families').doc(id).delete();
-            await db.collection('conditions').doc(name).delete();
-        } catch (err) { alert('삭제 실패: ' + err.message); }
-    }
-
-    async function updateConditionStatus(name, statusValue) {
-        const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        try {
-            await db.collection('conditions').doc(name).update({
-                status: statusValue, date: now,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (err) {
-            await db.collection('conditions').doc(name).set({
-                name: name, status: statusValue,
-                memo: state.conditionsMap[name]?.memo || '', date: now,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-    }
-
-    async function saveConditionMemo(name) {
-        const inputElem = document.getElementById(`cond-memo-${name}`);
-        if (!inputElem) return;
-        const memoVal = inputElem.value;
-        const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        try {
-            await db.collection('conditions').doc(name).update({
-                memo: memoVal, date: now,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert(`${name}님의 메모가 저장되었습니다.`);
-        } catch (err) { alert('메모 저장 실패: ' + err.message); }
-    }
-
-    async function addContact(e) {
-        e.preventDefault();
-        try {
-            await db.collection('contacts').add({
-                name: document.getElementById('contact-name').value,
-                date: document.getElementById('contact-date').value,
-                title: document.getElementById('contact-title').value,
-                detail: document.getElementById('contact-detail').value || '',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            e.target.reset();
-        } catch (err) { alert('연락 기록 저장 실패: ' + err.message); }
-    }
-
-    async function saveEditContact(e) {
-        e.preventDefault();
-        const id = document.getElementById('edit-contact-id').value;
-        try {
-            await db.collection('contacts').doc(id).update({
-                name: document.getElementById('edit-contact-name').value,
-                date: document.getElementById('edit-contact-date').value,
-                title: document.getElementById('edit-contact-title').value,
-                detail: document.getElementById('edit-contact-detail').value || ''
-            });
-            closeModal('edit-modal-contact');
-        } catch (err) { alert('수정 실패: ' + err.message); }
-    }
-
-    async function deleteContact(id) {
-        if (!confirm('연락 기록을 삭제하시겠습니까?')) return;
-        try { await db.collection('contacts').doc(id).delete(); }
-        catch (err) { alert('삭제 실패: ' + err.message); }
-    }
-
-    async function addSchedule(e) {
-        e.preventDefault();
-        try {
-            await db.collection('schedules').add({
-                title: document.getElementById('sched-title').value,
-                date: document.getElementById('sched-date').value,
-                type: document.getElementById('sched-type').value,
-                detail: document.getElementById('sched-detail').value || '',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            e.target.reset();
-        } catch (err) { alert('일정 등록 실패: ' + err.message); }
-    }
-
-    async function saveEditSchedule(e) {
-        e.preventDefault();
-        const id = document.getElementById('edit-sched-id').value;
-        try {
-            await db.collection('schedules').doc(id).update({
-                title: document.getElementById('edit-sched-title').value,
-                date: document.getElementById('edit-sched-date').value,
-                type: document.getElementById('edit-sched-type').value,
-                detail: document.getElementById('edit-sched-detail').value || ''
-            });
-            closeModal('edit-modal-schedule');
-        } catch (err) { alert('수정 실패: ' + err.message); }
-    }
-
-    async function deleteSchedule(id) {
-        if (!confirm('일정을 삭제하시겠습니까?')) return;
-        try { await db.collection('schedules').doc(id).delete(); }
-        catch (err) { alert('삭제 실패: ' + err.message); }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // 5. UI 렌더링
-    // ═══════════════════════════════════════════════════════════════
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function switchPage(pageId, btnElement) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
@@ -635,8 +454,29 @@
     }
     function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
 
+    async function addFamily(e) {
+        e.preventDefault();
+        const { doc, setDoc } = window.fs;
+        const name = document.getElementById('fam-name').value;
+        const id = String(Date.now());
+
+        await setDoc(doc(window.db, "families", id), {
+            name,
+            phone: document.getElementById('fam-phone').value,
+            qr: document.getElementById('fam-qr').value,
+            country: document.getElementById('fam-country').value,
+            location: document.getElementById('fam-location').value,
+            memo: document.getElementById('fam-memo').value
+        });
+
+        const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        await setDoc(doc(window.db, "conditions", name), { status: '양호', memo: '', date: now }, { merge: true });
+
+        e.target.reset();
+    }
+
     function openEditFamilyModal(id) {
-        const f = state.families.find(item => item.id === id);
+        const f = state.families.find(item => item.id == id);
         if (!f) return;
         document.getElementById('edit-fam-id').value = f.id;
         document.getElementById('edit-fam-name').value = f.name;
@@ -648,21 +488,107 @@
         document.getElementById('edit-modal-family').classList.add('active');
     }
 
+    async function saveEditFamily(e) {
+        e.preventDefault();
+        const { doc, setDoc } = window.fs;
+        const id = document.getElementById('edit-fam-id').value;
+        await setDoc(doc(window.db, "families", id), {
+            name: document.getElementById('edit-fam-name').value,
+            phone: document.getElementById('edit-fam-phone').value,
+            qr: document.getElementById('edit-fam-qr').value,
+            country: document.getElementById('edit-fam-country').value,
+            location: document.getElementById('edit-fam-location').value,
+            memo: document.getElementById('edit-fam-memo').value
+        }, { merge: true });
+        closeModal('edit-modal-family');
+    }
+
+    async function deleteFamily(id) {
+        if (confirm('정말 삭제하시겠습니까?')) {
+            const { doc, deleteDoc } = window.fs;
+            await deleteDoc(doc(window.db, "families", String(id)));
+        }
+    }
+
+    async function updateConditionStatus(name, statusValue) {
+        const { doc, setDoc } = window.fs;
+        const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const prevMemo = state.conditionsMap[name] ? state.conditionsMap[name].memo : '';
+        await setDoc(doc(window.db, "conditions", name), { status: statusValue, memo: prevMemo, date: now });
+    }
+
+    async function saveConditionMemo(name) {
+        const { doc, setDoc } = window.fs;
+        const inputElem = document.getElementById(`cond-memo-${name}`);
+        if (inputElem) {
+            const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            const currentStatus = state.conditionsMap[name] ? state.conditionsMap[name].status : '양호';
+            await setDoc(doc(window.db, "conditions", name), { status: currentStatus, memo: inputElem.value, date: now });
+            alert(`${name}님의 메모가 공유 저장되었습니다.`);
+        }
+    }
+
+    async function addContact(e) {
+        e.preventDefault();
+        const { doc, setDoc } = window.fs;
+        const id = String(Date.now());
+        await setDoc(doc(window.db, "contacts", id), {
+            name: document.getElementById('contact-name').value,
+            date: document.getElementById('contact-date').value,
+            title: document.getElementById('contact-title').value,
+            detail: document.getElementById('contact-detail').value
+        });
+        e.target.reset();
+    }
+
     function openEditContactModal(id) {
-        const c = state.contacts.find(item => item.id === id);
+        const c = state.contacts.find(item => item.id == id);
         if (!c) return;
         const select = document.getElementById('edit-contact-name');
         select.innerHTML = state.families.map(f => `<option value="${f.name}">${f.name}</option>`).join('');
         document.getElementById('edit-contact-id').value = c.id;
         document.getElementById('edit-contact-name').value = c.name;
         document.getElementById('edit-contact-date').value = c.date;
-        document.getElementById('edit-contact-title').value = c.title || c.memo || '';
+        document.getElementById('edit-contact-title').value = c.title || '';
         document.getElementById('edit-contact-detail').value = c.detail || '';
         document.getElementById('edit-modal-contact').classList.add('active');
     }
 
+    async function saveEditContact(e) {
+        e.preventDefault();
+        const { doc, setDoc } = window.fs;
+        const id = document.getElementById('edit-contact-id').value;
+        await setDoc(doc(window.db, "contacts", id), {
+            name: document.getElementById('edit-contact-name').value,
+            date: document.getElementById('edit-contact-date').value,
+            title: document.getElementById('edit-contact-title').value,
+            detail: document.getElementById('edit-contact-detail').value
+        }, { merge: true });
+        closeModal('edit-modal-contact');
+    }
+
+    async function deleteContact(id) {
+        if (confirm('연락 기록을 삭제하시겠습니까?')) {
+            const { doc, deleteDoc } = window.fs;
+            await deleteDoc(doc(window.db, "contacts", String(id)));
+        }
+    }
+
+    async function addSchedule(e) {
+        e.preventDefault();
+        const { doc, setDoc } = window.fs;
+        const id = String(Date.now());
+        await setDoc(doc(window.db, "schedules", id), {
+            title: document.getElementById('sched-title').value,
+            date: document.getElementById('sched-date').value,
+            type: document.getElementById('sched-type').value,
+            detail: document.getElementById('sched-detail').value
+        });
+        e.target.reset();
+    }
+
     function openEditScheduleModal(id) {
-        const s = state.schedules.find(item => item.id === id);
+        const s = state.schedules.find(item => item.id == id);
         if (!s) return;
         document.getElementById('edit-sched-id').value = s.id;
         document.getElementById('edit-sched-title').value = s.title;
@@ -670,6 +596,26 @@
         document.getElementById('edit-sched-type').value = s.type;
         document.getElementById('edit-sched-detail').value = s.detail || '';
         document.getElementById('edit-modal-schedule').classList.add('active');
+    }
+
+    async function saveEditSchedule(e) {
+        e.preventDefault();
+        const { doc, setDoc } = window.fs;
+        const id = document.getElementById('edit-sched-id').value;
+        await setDoc(doc(window.db, "schedules", id), {
+            title: document.getElementById('edit-sched-title').value,
+            date: document.getElementById('edit-sched-date').value,
+            type: document.getElementById('edit-sched-type').value,
+            detail: document.getElementById('edit-sched-detail').value
+        }, { merge: true });
+        closeModal('edit-modal-schedule');
+    }
+
+    async function deleteSchedule(id) {
+        if (confirm('일정을 삭제하시겠습니까?')) {
+            const { doc, deleteDoc } = window.fs;
+            await deleteDoc(doc(window.db, "schedules", String(id)));
+        }
     }
 
     function getStatusBadge(status) {
@@ -688,6 +634,7 @@
         state.families.forEach(f => {
             const qrBtn = f.qr ? `<a href="${f.qr}" target="_blank" class="btn-link btn-kakao">카톡</a>` : '-';
             const phoneBtn = f.phone ? `<a href="tel:${f.phone}" class="btn-link btn-tel">${f.phone}</a>` : '-';
+
             famTable.innerHTML += `<tr>
                 <td data-label="이름"><b>${f.name}</b></td>
                 <td data-label="전화번호">${phoneBtn}</td>
@@ -695,8 +642,8 @@
                 <td data-label="국가/위치">${f.country} (${f.location})</td>
                 <td data-label="메모">${f.memo || '-'}</td>
                 <td data-label="관리">
-                    <button class="btn-edit" onclick="openEditFamilyModal('${f.id}')">수정</button>
-                    <button class="btn-delete" onclick="deleteFamily('${f.id}')">삭제</button>
+                    <button class="btn-edit" onclick="openEditFamilyModal('${f.id}')">✏️ 수정</button>
+                    <button class="btn-delete" onclick="deleteFamily('${f.id}')">🗑️ 삭제</button>
                 </td>
             </tr>`;
             contactSelect.innerHTML += `<option value="${f.name}">${f.name}</option>`;
@@ -705,9 +652,11 @@
         const condTable = document.getElementById('table-condition');
         condTable.innerHTML = '';
         let goodCount = 0;
+
         state.families.forEach(f => {
             const condData = state.conditionsMap[f.name] || { status: '양호', memo: '', date: '-' };
             if (condData.status === '양호') goodCount++;
+
             condTable.innerHTML += `
                 <tr>
                     <td data-label="이름"><b>${f.name}</b></td>
@@ -720,42 +669,41 @@
                         </select>
                     </td>
                     <td data-label="상세 메모">
-                        <div style="display: flex; gap: 6px;">
-                            <input type="text" id="cond-memo-${f.name}" value="${condData.memo || ''}" placeholder="메모 입력" style="padding: 6px 10px; font-size: 13px;">
-                            <button onclick="saveConditionMemo('${f.name}')" style="padding: 6px 10px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">저장</button>
+                        <div style="display: flex; gap: 6px; width: 100%;">
+                            <input type="text" id="cond-memo-${f.name}" value="${condData.memo || ''}" placeholder="메모 입력" style="padding: 6px 10px; font-size: 13px; flex: 1;">
+                            <button onclick="saveConditionMemo('${f.name}')" style="padding: 6px 12px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap;">저장</button>
                         </div>
                     </td>
                     <td data-label="업데이트 일시" style="color:#64748b; font-size:12px;">${condData.date}</td>
-                    <td data-label="저장">✅ 저장됨</td>
-                </tr>`;
+                    <td data-label="상태">🟢 연동됨</td>
+                </tr>
+            `;
         });
 
-        document.getElementById('table-contact').innerHTML = state.contacts.map(c => `
+        document.getElementById('table-contact').innerHTML = [...state.contacts]
+            .sort((a,b) => new Date(b.date) - new Date(a.date))
+            .map(c => `
             <tr>
                 <td data-label="날짜">${c.date}</td>
                 <td data-label="이름"><b>${c.name}</b></td>
-                <td data-label="내용">
-                    <b>${c.title || c.memo}</b>
-                    ${c.detail ? `<div class="detail-text">${c.detail}</div>` : ''}
-                </td>
+                <td data-label="내용"><b>${c.title}</b>${c.detail ? `<div class="detail-text">${c.detail}</div>` : ''}</td>
                 <td data-label="관리">
-                    <button class="btn-edit" onclick="openEditContactModal('${c.id}')">수정</button>
-                    <button class="btn-delete" onclick="deleteContact('${c.id}')">삭제</button>
+                    <button class="btn-edit" onclick="openEditContactModal('${c.id}')">✏️ 수정</button>
+                    <button class="btn-delete" onclick="deleteContact('${c.id}')">🗑️ 삭제</button>
                 </td>
             </tr>
         `).join('');
 
-        document.getElementById('table-schedule').innerHTML = state.schedules.map(s => `
+        document.getElementById('table-schedule').innerHTML = [...state.schedules]
+            .sort((a,b) => new Date(a.date) - new Date(b.date))
+            .map(s => `
             <tr>
                 <td data-label="날짜">${s.date}</td>
                 <td data-label="구분"><span class="badge badge-warn">${s.type}</span></td>
-                <td data-label="일정">
-                    <b>${s.title}</b>
-                    ${s.detail ? `<div class="detail-text">${s.detail}</div>` : ''}
-                </td>
+                <td data-label="일정"><b>${s.title}</b>${s.detail ? `<div class="detail-text">${s.detail}</div>` : ''}</td>
                 <td data-label="관리">
-                    <button class="btn-edit" onclick="openEditScheduleModal('${s.id}')">수정</button>
-                    <button class="btn-delete" onclick="deleteSchedule('${s.id}')">삭제</button>
+                    <button class="btn-edit" onclick="openEditScheduleModal('${s.id}')">✏️ 수정</button>
+                    <button class="btn-delete" onclick="deleteSchedule('${s.id}')">🗑️ 삭제</button>
                 </td>
             </tr>
         `).join('');
@@ -789,20 +737,23 @@
                     <div style="font-size:12px; color:#475569; margin-top:2px;">${cond.memo || '메모 없음'}</div>
                 </div>
                 ${getStatusBadge(cond.status)}
-            </div>`;
+            </div>
+            `;
         }).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
 
-        document.getElementById('dash-contact-list').innerHTML = state.contacts.length ? state.contacts.slice(0, 4).map(c => `
+        document.getElementById('dash-contact-list').innerHTML = state.contacts.length ? [...state.contacts]
+            .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 4).map(c => `
             <div class="family-item-card">
                 <div>
                     <b>${c.name}</b> <small style="color:#64748b">(${c.date})</small>
-                    <div style="font-size:13px; font-weight:bold; color:#334155; margin-top:2px;">${c.title || c.memo}</div>
+                    <div style="font-size:13px; font-weight:bold; color:#334155; margin-top:2px;">${c.title}</div>
                     ${c.detail ? `<div style="font-size:12px; color:#64748b; margin-top:2px;">${c.detail}</div>` : ''}
                 </div>
             </div>
         `).join('') : '<div style="color:#94a3b8">연락 기록이 없습니다.</div>';
 
-        document.getElementById('dash-schedule-list').innerHTML = state.schedules.length ? state.schedules.slice(0, 4).map(s => `
+        document.getElementById('dash-schedule-list').innerHTML = state.schedules.length ? [...state.schedules]
+            .sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 4).map(s => `
             <div class="family-item-card">
                 <div>
                     <b>${s.title}</b>
@@ -813,8 +764,7 @@
             </div>
         `).join('') : '<div style="color:#94a3b8">등록된 일정이 없습니다.</div>';
     }
-
-    initRealtimeListeners();
 </script>
+
 </body>
 </html>
