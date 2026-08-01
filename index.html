@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>가족안부현황</title>
+    <title>가족연락망</title>
 
     <!-- Firebase SDK (v12) Module -->
     <script type="module">
@@ -140,14 +140,14 @@
         .profile-box { display: flex; align-items: center; gap: 12px; }
         .family-info .name { font-weight: bold; font-size: 15px; }
         .family-info .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
-        .action-btns { display: flex; gap: 6px; flex-shrink: 0; }
+        .action-btns { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
         .badge-good { background: #dcfce7; color: #15803d; }
         .badge-warn { background: #fef9c3; color: #a16207; }
         .badge-danger { background: #fee2e2; color: #b91c1c; }
 
-        .btn-link { padding: 8px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: bold; display: inline-block; }
+        .btn-link { padding: 6px 10px; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: bold; display: inline-block; }
         .btn-tel { background: #e0e7ff; color: #3730a3; }
         .btn-kakao { background: #fef08a; color: #713f12; }
 
@@ -182,8 +182,11 @@
         th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
         th { background: #f8fafc; color: var(--text-sub); font-weight: 600; }
 
-        .btn-edit { background: #0284c7; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 4px; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-icon-edit { background: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-icon-edit:hover { background: #0369a1; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-delete:hover { background: #dc2626; }
+        
         .detail-text { font-size: 12px; color: var(--text-sub); margin-top: 4px; white-space: pre-wrap; }
 
         .modal-overlay {
@@ -200,7 +203,6 @@
         .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
         .btn-cancel { background: #e2e8f0; color: #475569; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        /* 모바일 대응 레이아웃 */
         @media (max-width: 768px) {
             body { flex-direction: column; height: 100vh; }
             .mobile-header { display: flex; }
@@ -214,8 +216,8 @@
             .stat-card .value { font-size: 20px; }
             .dashboard-grid { grid-template-columns: 1fr; }
             .widget-card { padding: 16px; }
-            .family-item-card { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .action-btns { width: 100%; justify-content: flex-end; }
+            .family-item-card { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+            .action-btns { justify-content: flex-end; }
             form { grid-template-columns: 1fr !important; padding: 16px; }
             input, select, textarea, button { width: 100%; }
             
@@ -225,21 +227,18 @@
             td { border: none; border-bottom: 1px solid #f1f5f9; position: relative; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
             td:last-child { border-bottom: none; justify-content: flex-end; padding-top: 12px; margin-top: 4px; }
             td::before { content: attr(data-label); font-weight: bold; color: var(--text-sub); font-size: 13px; text-align: left; padding-right: 10px; }
-            
-            /* 모바일 버튼 스타일 강화 */
-            .btn-edit, .btn-delete { padding: 8px 14px; font-size: 13px; border-radius: 6px; }
         }
     </style>
 </head>
 <body>
 
     <div class="mobile-header">
-        <h2>🏠 가족안부현황</h2>
+        <h2>🏠 가족연락망</h2>
         <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
     </div>
 
     <div class="sidebar" id="sidebar">
-        <h2>🏠 가족안부현황</h2>
+        <h2>🏠 가족연락망</h2>
         <nav class="nav-menu">
             <button class="nav-btn active" onclick="switchPage('page-dashboard', this)">📊 대시보드</button>
             <button class="nav-btn" onclick="switchPage('page-condition', this)">💌 컨디션 체크</button>
@@ -251,7 +250,7 @@
 
     <div class="main-content">
         <div id="page-dashboard" class="page-content active">
-            <div class="header"><h1>가족안부현황</h1></div>
+            <div class="header"><h1>가족연락망</h1></div>
             <div class="dashboard-container">
                 <div class="stats-grid">
                     <div class="stat-card"><div class="label">총 등록 가족</div><div class="value" id="stat-family-count">0명</div></div>
@@ -449,7 +448,7 @@
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
-        btnElement.classList.add('active');
+        if (btnElement) btnElement.classList.add('active');
         if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
     }
     function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
@@ -642,7 +641,7 @@
                 <td data-label="국가/위치">${f.country} (${f.location})</td>
                 <td data-label="메모">${f.memo || '-'}</td>
                 <td data-label="관리">
-                    <button class="btn-edit" onclick="openEditFamilyModal('${f.id}')">✏️ 수정</button>
+                    <button class="btn-icon-edit" onclick="openEditFamilyModal('${f.id}')">✏️ 수정</button>
                     <button class="btn-delete" onclick="deleteFamily('${f.id}')">🗑️ 삭제</button>
                 </td>
             </tr>`;
@@ -688,7 +687,7 @@
                 <td data-label="이름"><b>${c.name}</b></td>
                 <td data-label="내용"><b>${c.title}</b>${c.detail ? `<div class="detail-text">${c.detail}</div>` : ''}</td>
                 <td data-label="관리">
-                    <button class="btn-edit" onclick="openEditContactModal('${c.id}')">✏️ 수정</button>
+                    <button class="btn-icon-edit" onclick="openEditContactModal('${c.id}')">✏️ 수정</button>
                     <button class="btn-delete" onclick="deleteContact('${c.id}')">🗑️ 삭제</button>
                 </td>
             </tr>
@@ -702,7 +701,7 @@
                 <td data-label="구분"><span class="badge badge-warn">${s.type}</span></td>
                 <td data-label="일정"><b>${s.title}</b>${s.detail ? `<div class="detail-text">${s.detail}</div>` : ''}</td>
                 <td data-label="관리">
-                    <button class="btn-edit" onclick="openEditScheduleModal('${s.id}')">✏️ 수정</button>
+                    <button class="btn-icon-edit" onclick="openEditScheduleModal('${s.id}')">✏️ 수정</button>
                     <button class="btn-delete" onclick="deleteSchedule('${s.id}')">🗑️ 삭제</button>
                 </td>
             </tr>
@@ -722,8 +721,9 @@
                     </div>
                 </div>
                 <div class="action-btns">
-                    ${f.phone ? `<a href="tel:${f.phone}" class="btn-link btn-tel">📞 전화</a>` : ''}
-                    ${f.qr ? `<a href="${f.qr}" target="_blank" class="btn-link btn-kakao">💬 카톡</a>` : ''}
+                    ${f.phone ? `<a href="tel:${f.phone}" class="btn-link btn-tel">📞</a>` : ''}
+                    ${f.qr ? `<a href="${f.qr}" target="_blank" class="btn-link btn-kakao">💬</a>` : ''}
+                    <button class="btn-icon-edit" onclick="openEditFamilyModal('${f.id}')">✏️</button>
                 </div>
             </div>
         `).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
@@ -736,7 +736,10 @@
                     <b>${f.name}</b> <small style="color:#64748b">(${cond.date})</small>
                     <div style="font-size:12px; color:#475569; margin-top:2px;">${cond.memo || '메모 없음'}</div>
                 </div>
-                ${getStatusBadge(cond.status)}
+                <div style="display:flex; align-items:center; gap:6px;">
+                    ${getStatusBadge(cond.status)}
+                    <button class="btn-icon-edit" onclick="switchPage('page-condition', null)">✏️</button>
+                </div>
             </div>
             `;
         }).join('') : '<div style="color:#94a3b8">등록된 가족이 없습니다.</div>';
@@ -749,6 +752,7 @@
                     <div style="font-size:13px; font-weight:bold; color:#334155; margin-top:2px;">${c.title}</div>
                     ${c.detail ? `<div style="font-size:12px; color:#64748b; margin-top:2px;">${c.detail}</div>` : ''}
                 </div>
+                <button class="btn-icon-edit" onclick="openEditContactModal('${c.id}')">✏️</button>
             </div>
         `).join('') : '<div style="color:#94a3b8">연락 기록이 없습니다.</div>';
 
@@ -760,7 +764,10 @@
                     <div style="font-size:12px; color:#64748b; margin-top:2px;">📅 ${s.date}</div>
                     ${s.detail ? `<div style="font-size:12px; color:#475569; margin-top:2px;">${s.detail}</div>` : ''}
                 </div>
-                <span class="badge badge-warn">${s.type}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="badge badge-warn">${s.type}</span>
+                    <button class="btn-icon-edit" onclick="openEditScheduleModal('${s.id}')">✏️</button>
+                </div>
             </div>
         `).join('') : '<div style="color:#94a3b8">등록된 일정이 없습니다.</div>';
     }
